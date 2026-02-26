@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 249, 250, 251; /* Gray 50 */
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Custom Utilities untuk desain Bulat (Rounded) Kongkonan */
+@layer components {
+  .btn-primary {
+    @apply bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-200 active:scale-95 transition-all hover:bg-indigo-700;
+  }
+  
+  .card-produk {
+    @apply bg-white border border-gray-100 rounded-[2rem] p-4 shadow-sm hover:shadow-md transition-shadow;
+  }
+  
+  .input-field {
+    @apply w-full p-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all;
+  }
+}
+
+/* Animasi untuk Badge Keranjang */
+@keyframes bounce-custom {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.animate-bounce-small {
+  animation: bounce-custom 0.5s infinite;
+}
