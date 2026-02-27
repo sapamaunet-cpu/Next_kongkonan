@@ -4,31 +4,32 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res });
+  try {
+    const res = NextResponse.next();
+    const supabase = createMiddlewareClient({ req, res });
 
-  // 1. Ambil session user
-  const { data: { session } } = await supabase.auth.getSession();
-
-  // 2. Tentukan email admin dari .env
-  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-
-  // 3. Cek apakah user mencoba mengakses folder /admin
-  if (req.nextUrl.pathname.startsWith('/admin')) {
+    // Ambil session
+    const { data: { session } } = await supabase.auth.getSession();
     
-    // Jika belum login, atau email tidak cocok dengan admin
-    if (!session || session.user.email !== adminEmail) {
-      // Lempar ke halaman login atau home
-      const url = req.nextUrl.clone();
-      url.pathname = '/login'; 
-      return NextResponse.redirect(url);
-    }
-  }
+    // Ambil email admin dari env
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
-  return res;
+    // Proteksi folder admin
+    if (req.nextUrl.pathname.startsWith('/admin')) {
+      // Jika email tidak cocok atau tidak ada session, lempar ke login
+      if (!session || !session.user || session.user.email !== adminEmail) {
+        return NextResponse.redirect(new URL('/login', req.url));
+      }
+    }
+
+    return res;
+  } catch (e) {
+    // Jika terjadi error di middleware, jangan biarkan error 500
+    // Melainkan arahkan ke home atau login
+    return NextResponse.redirect(new URL('/login', req.url));
+  }
 }
 
-// Atur agar middleware hanya berjalan pada folder admin
 export const config = {
   matcher: ['/admin/:path*'],
 };
