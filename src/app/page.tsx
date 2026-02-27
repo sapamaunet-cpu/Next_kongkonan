@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
-import { getShopStatus } from '@/lib/shopStatus';
+import { checkIsStoreOpen } from '@/lib/shopStatus';
 import Link from 'next/link';
 
 export const revalidate = 0; // Agar data selalu fresh
@@ -10,7 +10,7 @@ export default async function HomePage() {
   const { data: products } = await supabase.from('products').select('*').order('created_at', { ascending: false });
   const { data: settings } = await supabase.from('settings').select('*').single();
   
-  const status = getShopStatus(settings);
+  const status = checkIsStoreOpen(settings);
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
