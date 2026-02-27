@@ -1,35 +1,57 @@
-// src/middleware.ts
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(req: NextRequest) {
-  try {
-    const res = NextResponse.next();
-    const supabase = createMiddlewareClient({ req, res });
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
 
-    // Ambil session
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    // Ambil email admin dari env
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-
-    // Proteksi folder admin
-    if (req.nextUrl.pathname.startsWith('/admin')) {
-      // Jika email tidak cocok atau tidak ada session, lempar ke login
-      if (!session || !session.user || session.user.email !== adminEmail) {
-        return NextResponse.redirect(new URL('/login', req.url));
-      }
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          request.cookies.set({ name, value, ...options })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({ name, value, ...options })
+        },
+        remove(name: string, options: CookieOptions) {
+          request.cookies.set({ name, value, ...options })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({ name, value, ...options })
+        },
+      },
     }
+  )
 
-    return res;
-  } catch (e) {
-    // Jika terjadi error di middleware, jangan biarkan error 500
-    // Melainkan arahkan ke home atau login
-    return NextResponse.redirect(new URL('/login', req.url));
+  const { data: { session } } = await supabase.auth.getSession()
+  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL?.trim().toLowerCase();
+
+  // Proteksi Folder Admin
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    const userEmail = session?.user?.email?.trim().toLowerCase();
+    if (!session || userEmail !== adminEmail) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
   }
+
+  return response
 }
 
 export const config = {
   matcher: ['/admin/:path*'],
-};
+}
